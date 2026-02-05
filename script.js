@@ -1,147 +1,210 @@
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
+/**
+ * OMNIS NULLA - Vanilla JS Core
+ * Gestisce: UI, Animazioni, Form, Cookies e 3D Background
+ */
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 1. Инициализация иконок ---
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // --- 1. INIZIALIZZAZIONE ICONE (LUCIDE) ---
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 
-    // --- 2. Мобильное меню («Бургер») ---
-    const burger = document.querySelector('.burger');
-    const mobileMenu = document.querySelector('.mobile-menu');
-    const closeMenu = document.querySelector('.mobile-menu__close');
-    const menuLinks = document.querySelectorAll('.mobile-menu__link');
-
-    const toggleMenu = () => mobileMenu.classList.toggle('mobile-menu--active');
-
-    burger?.addEventListener('click', toggleMenu);
-    closeMenu?.addEventListener('click', toggleMenu);
-    menuLinks.forEach(link => link.addEventListener('click', toggleMenu));
-
-    // --- 3. Header Scroll Effect ---
-    const header = document.querySelector('.header');
-    window.addEventListener('scroll', () => {
-        header?.classList.toggle('header--scrolled', window.scrollY > 50);
-    });
-
-    // --- 4. Three.js Hero Scene ---
+    // --- 2. THREE.JS: SFONDO HERO ---
     const initHeroScene = () => {
         const container = document.getElementById('hero-canvas');
-        if (!container) return;
+        if (!container || typeof THREE === 'undefined') return;
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
 
+        // Creazione particelle (Neteork)
         const geometry = new THREE.BufferGeometry();
         const vertices = [];
-        for (let i = 0; i < 4000; i++) {
-            vertices.push(THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000));
+        for (let i = 0; i < 220; i++) {
+            vertices.push(
+                Math.random() * 2000 - 1000,
+                Math.random() * 2000 - 1000,
+                Math.random() * 2000 - 1000
+            );
         }
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x635BFF, size: 2, transparent: true, opacity: 0.6 }));
+
+        const material = new THREE.PointsMaterial({
+            color: 0x2dfaab,
+            size: 2.5,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        const points = new THREE.Points(geometry, material);
         scene.add(points);
-        camera.position.z = 1000;
+        camera.position.z = 500;
 
-        let mouseX = 0, mouseY = 0;
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX - window.innerWidth / 2) / 150;
-            mouseY = (e.clientY - window.innerHeight / 2) / 150;
-        });
-
-        const animate = () => {
+        function animate() {
             requestAnimationFrame(animate);
-            points.rotation.x += 0.0005; points.rotation.y += 0.0005;
-            camera.position.x += (mouseX - camera.position.x) * 0.05;
-            camera.position.y += (-mouseY - camera.position.y) * 0.05;
-            camera.lookAt(scene.position);
+            points.rotation.y += 0.0006;
+            points.rotation.x += 0.0003;
             renderer.render(scene, camera);
-        };
+        }
         animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    };
+    initHeroScene();
+
+    // --- 3. MENU MOBILE & BURGER ---
+    const burger = document.querySelector('.burger');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuClose = document.getElementById('menu-close');
+    const menuLinks = document.querySelectorAll('.mobile-menu__nav a');
+
+    const toggleMenu = () => {
+        mobileMenu.classList.toggle('active');
+        document.body.classList.toggle('no-scroll'); // Opzionale: blocca scroll body
     };
 
-    // --- 5. Image Morphing (Strategies) ---
-    const initStrategyMorph = () => {
-        const items = document.querySelectorAll('.strategy-item');
-        const morphImg = document.querySelector('.morph-img');
-        const shapes = {
-            circle: 'circle(45% at 50% 50%)',
-            polygon: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)',
-            blob: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)'
+    if (burger) burger.addEventListener('click', toggleMenu);
+    if (menuClose) menuClose.addEventListener('click', toggleMenu);
+    
+    menuLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            document.body.classList.remove('no-scroll');
+        });
+    });
+
+    // --- 4. SISTEMA REVEAL (INTERSECTION OBSERVER) ---
+    // Risolve il problema dei titoli e sezioni invisibili
+    const initReveal = () => {
+        const observerOptions = {
+            threshold: 0.05, // Attiva appena il 5% è visibile
+            rootMargin: '0px 0px -50px 0px'
         };
-        items.forEach(item => {
-            item.addEventListener('mouseenter', () => {
-                items.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                if(morphImg) morphImg.style.clipPath = shapes[item.dataset.shape] || shapes.circle;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target); // Ferma l'osservazione dopo l'attivazione
+                }
             });
+        }, observerOptions);
+
+        // Seleziona tutti gli elementi che devono apparire (inclusi titoli e sezioni intere)
+        const targets = document.querySelectorAll('.section__header, .course-card, .method__item, .mentor-card, .career__content, .career__image, .contact__info, .contact__form-wrapper, .section, .reveal');
+
+        targets.forEach(el => {
+            // Aggiunge la classe reveal se non presente
+            if (!el.classList.contains('reveal')) {
+                el.classList.add('reveal');
+            }
+            // Controllo immediato se l'elemento è già visibile (es. Hero al caricamento)
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight && rect.bottom > 0) {
+                el.classList.add('active');
+            } else {
+                observer.observe(el);
+            }
         });
     };
+    initReveal();
 
-    // --- 6. Контактная форма + Валидация телефона + Капча ---
-    const initContactForm = () => {
-        const form = document.getElementById('ajax-form');
-        const phoneInput = document.getElementById('phone');
-        const questionEl = document.getElementById('captcha-question');
-        const messageEl = document.getElementById('form-message');
+    // --- 5. CONTACT FORM: CAPTCHA & AJAX SIMULATION ---
+    const contactForm = document.getElementById('contact-form');
+    if (contactForm) {
+        const captchaLabel = document.getElementById('captcha-label');
+        const num1 = Math.floor(Math.random() * 10);
+        const num2 = Math.floor(Math.random() * 10);
+        const total = num1 + num2;
 
-        if (!form) return;
+        if (captchaLabel) {
+            captchaLabel.textContent = `Sicurezza: ${num1} + ${num2} = ?`;
+        }
 
-        // Валидация телефона (только цифры и +)
-        phoneInput?.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/[^\d+]/g, '');
-        });
-
-        // Генерация капчи
-        let n1 = Math.floor(Math.random() * 10), n2 = Math.floor(Math.random() * 10);
-        if(questionEl) questionEl.textContent = `${n1} + ${n2}`;
-
-        form.addEventListener('submit', async (e) => {
+        contactForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const answer = parseInt(document.getElementById('captcha-answer').value);
-            if (answer !== (n1 + n2)) {
-                messageEl.textContent = "Ошибка капчи!";
-                messageEl.className = "form-message error";
+            const status = document.getElementById('form-status');
+            const inputAns = document.getElementById('captcha-input').value;
+            const btn = this.querySelector('button');
+
+            if (parseInt(inputAns) !== total) {
+                status.textContent = "Risultato captcha errato.";
+                status.className = "form__status error";
                 return;
             }
 
-            const btn = form.querySelector('button');
-            btn.disabled = true; btn.textContent = "Отправка...";
+            // Simulazione invio
+            btn.disabled = true;
+            btn.textContent = "Invio in corso...";
 
-            await new Promise(r => setTimeout(r, 1500)); // Имитация AJAX
-            
-            messageEl.textContent = "Успешно отправлено!";
-            messageEl.className = "form-message success";
-            form.reset();
-            btn.disabled = false; btn.innerHTML = 'Отправить запрос <i data-lucide="send"></i>';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        });
-    };
-
-    // --- 7. Cookie Popup ---
-    const initCookiePopup = () => {
-        const popup = document.getElementById('cookie-popup');
-        const acceptBtn = document.getElementById('cookie-accept');
-        if (!localStorage.getItem('cookies_accepted')) {
-            setTimeout(() => popup?.classList.add('cookie-popup--active'), 2000);
-        }
-        acceptBtn?.addEventListener('click', () => {
-            localStorage.setItem('cookies_accepted', 'true');
-            popup?.classList.remove('cookie-popup--active');
-        });
-    };
-
-    // --- Запуск ---
-    initHeroScene();
-    initStrategyMorph();
-    initContactForm();
-    initCookiePopup();
-    if (typeof Swiper !== 'undefined') {
-        new Swiper('.insights-slider', {
-            slidesPerView: 1, spaceBetween: 30, loop: true,
-            navigation: { nextEl: '.swiper-button-next-custom', prevEl: '.swiper-button-prev-custom' },
-            breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } }
+            setTimeout(() => {
+                status.textContent = "Grazie! La tua richiesta è stata inviata.";
+                status.className = "form__status success";
+                btn.disabled = false;
+                btn.textContent = "Invia Richiesta";
+                contactForm.reset();
+            }, 1500);
         });
     }
+
+    // --- 6. COOKIE CONSENT ---
+    const cookiePop = document.getElementById('cookie-popup');
+    const cookieBtn = document.getElementById('accept-cookies');
+
+    if (cookiePop && !localStorage.getItem('cookies-accepted')) {
+        setTimeout(() => {
+            cookiePop.classList.add('active');
+        }, 3000);
+    }
+
+    if (cookieBtn) {
+        cookieBtn.addEventListener('click', () => {
+            localStorage.setItem('cookies-accepted', 'true');
+            cookiePop.classList.remove('active');
+        });
+    }
+
+    // --- 7. SMOOTH SCROLL & HEADER EFFECT ---
+    const header = document.querySelector('.header');
+    
+    window.addEventListener('scroll', () => {
+        // Effetto Header Scrolled
+        if (window.scrollY > 60) {
+            header.classList.add('header--scrolled');
+        } else {
+            header.classList.remove('header--scrolled');
+        }
+    });
+
+    // Navigazione fluida per tutti i link interni
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+
+            const targetEl = document.querySelector(targetId);
+            if (targetEl) {
+                const offset = 90;
+                const bodyRect = document.body.getBoundingClientRect().top;
+                const elementRect = targetEl.getBoundingClientRect().top;
+                const elementPosition = elementRect - bodyRect;
+                const offsetPosition = elementPosition - offset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
 });
