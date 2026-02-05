@@ -155,13 +155,13 @@ $domainTitle = ucwords(str_replace('-', ' ', $domainSlug));
                 <div class="footer__col">
                     <h4 class="footer__title">Legale</h4>
                     <ul class="footer__links">
-                        <li><a href="./privacy.php">Privacy Policy</a></li>
-                        <li><a href="./cookies.php">Cookie Policy</a></li>
-                        <li><a href="./terms.php">Terms of Service</a></li>
-                        <li><a href="./return.php">Return Policy</a></li>
-                        <li><a href="./disclaimer.php">Disclaimer</a></li>
-                        <li><a href="./contact.php">Contact Us</a></li>
-                        <li><a href="./personal-data-policy.php">Data Policy</a></li>
+                    <li><a href="./privacy.php">Informativa sulla Privacy</a></li>
+<li><a href="./cookies.php">Cookie Policy</a></li>
+<li><a href="./terms.php">Termini e Condizioni</a></li>
+<li><a href="./return.php">Politica di Rimborso</a></li>
+<li><a href="./disclaimer.php">Esclusione di Responsabilità</a></li>
+<li><a href="./contact.php">Contattaci</a></li>
+<li><a href="./personal-data-policy.php">Trattamento dei Dati</a></li>
                     </ul>
                 </div>
 
